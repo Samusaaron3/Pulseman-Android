@@ -17,14 +17,14 @@ public class ConnectionHandler
 	private static Socket socket = null;
 	private static PrintWriter out = null;
 	private static BufferedReader in = null;
-	
-	private static MessageSender messageSender = new MessageSender();
+
+	private static MessageSender messageSender;
 
 	private static Queue<String> messageQueue = new LinkedList<String>();
 
 	public static synchronized boolean connect(String ip, int port)
 	{
-		if(socket != null || socket.isConnected())
+		if(socket != null && socket.isConnected())
 		{
 			throw new IllegalStateException("Already connected to host");
 		}
@@ -36,6 +36,9 @@ public class ConnectionHandler
 			socket.setSoTimeout(SOCKET_TIMEOUT);
 			out = new PrintWriter(socket.getOutputStream(), true);
 			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+			messageSender = new MessageSender();
+			new Thread(messageSender, "Message Sender").start();
 
 			return true;
 		}
@@ -55,31 +58,50 @@ public class ConnectionHandler
 
 	public static synchronized void disconnect()
 	{
-		if(socket == null || !socket.isConnected())
+		if(messageSender != null)
 		{
-			throw new IllegalStateException("Not connected to host");
+			messageSender.kill();
 		}
 
-		out.close();
-		try
+		if(out != null)
 		{
-			in.close();
-		}
-		catch(IOException e)
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			out.close();
 		}
 
-		try
+		if(in != null)
 		{
-			socket.close();
+			try
+			{
+				in.close();
+			}
+			catch(IOException e)
+			{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
-		catch(IOException e)
+
+		if(socket != null)
 		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			try
+			{
+				socket.close();
+			}
+			catch(IOException e)
+			{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
+
+		out = null;
+		in = null;
+		socket = null;
+	}
+
+	public static synchronized boolean isConnected()
+	{
+		return socket != null && out != null && in != null && socket.isConnected();
 	}
 
 	public static void sendMessage(String message)
@@ -87,16 +109,27 @@ public class ConnectionHandler
 		synchronized(messageQueue)
 		{
 			messageQueue.offer(message);
+
+			messageQueue.notifyAll();
 		}
 	}
 
 	private static class MessageSender implements Runnable
 	{
-		private boolean alive;
+		private volatile boolean alive;
 
 		public MessageSender()
 		{
 			alive = true;
+		}
+
+		public void kill()
+		{
+			synchronized(messageQueue)
+			{
+				alive = false;
+				messageQueue.notifyAll();
+			}
 		}
 
 		@Override
@@ -104,31 +137,40 @@ public class ConnectionHandler
 		{
 			while(alive)
 			{
-				synchronized(this)
+				synchronized(messageQueue)
 				{
-					while(messageQueue.isEmpty() && alive)
+					while(messageQueue.isEmpty())
 					{
 						try
 						{
-							wait();
+							messageQueue.wait();
 						}
 						catch(InterruptedException e)
 						{
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
-					}
 
-					if(!alive)
-					{
-						return;
+						if(!alive)
+						{
+							break;
+						}
 					}
+				}
 
-					if(socket != null && out != null && socket.isConnected())
+				if(!alive)
+				{
+					return;
+				}
+
+				synchronized(messageQueue)
+				{
+					if(isConnected())
 					{
 						out.println(messageQueue.poll());
 					}
 				}
+
 			}
 		}
 	}

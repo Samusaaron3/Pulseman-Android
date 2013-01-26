@@ -1,13 +1,5 @@
 package edu.calpoly.csc.pulseman;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.UnknownHostException;
-
 import android.os.Bundle;
 import android.app.Activity;
 import android.util.Log;
@@ -22,9 +14,6 @@ public class MainActivity extends Activity
 	public static final int SOCKET_TIMEOUT = 10000, PORT = 42000;
 
 	private RelativeLayout layout;
-	private Socket socket;
-	private PrintWriter out;
-	private BufferedReader in;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
@@ -39,17 +28,14 @@ public class MainActivity extends Activity
 			public boolean onTouch(View v, MotionEvent event)
 			{
 				Log.e("debug", "touch");
-				if(out != null)
+				if(ConnectionHandler.isConnected())
 				{
-					out.println("touch");
-					Log.e("debug", "message sent");
+					ConnectionHandler.sendMessage("touch");
 				}
 
 				return false;
 			}
 		});
-
-		socket = null;
 	}
 
 	@Override
@@ -62,30 +48,9 @@ public class MainActivity extends Activity
 			@Override
 			public void run()
 			{
-				if(socket == null)
-				{
-					try
-					{
-						socket = new Socket();
-						socket.connect(new InetSocketAddress("129.65.102.176", PORT), SOCKET_TIMEOUT);
-						socket.setSoTimeout(SOCKET_TIMEOUT);
-
-						out = new PrintWriter(socket.getOutputStream(), true);
-						in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-					}
-					catch(UnknownHostException e)
-					{
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					catch(IOException e)
-					{
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
+				ConnectionHandler.connect("129.65.102.176", PORT);
 			}
-		}).start();
+		}, "Connect thread").start();
 	}
 
 	@Override
@@ -93,23 +58,14 @@ public class MainActivity extends Activity
 	{
 		super.onPause();
 
-		// TODO
-		if(socket != null)
+		new Thread(new Runnable()
 		{
-			try
+			@Override
+			public void run()
 			{
-				socket.close();
+				ConnectionHandler.disconnect();
 			}
-			catch(IOException e)
-			{
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-
-		socket = null;
-		out = null;
-		in = null;
+		}, "Disconnect thread").start();
 	}
 
 	@Override
