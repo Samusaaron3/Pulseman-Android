@@ -12,14 +12,19 @@ import android.widget.RelativeLayout;
 public class MainActivity extends Activity
 {
 	public static final int SOCKET_TIMEOUT = 10000, PORT = 42000;
+	public static final String IP_ADDRESS = "ipAddress";
 
 	private RelativeLayout layout;
+	private String ipAddress;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+
+		Bundle extras = getIntent().getExtras();
+		ipAddress = extras.getString(IP_ADDRESS);
 
 		layout = (RelativeLayout)findViewById(R.id.main_layout);
 		layout.setOnTouchListener(new OnTouchListener()
@@ -48,7 +53,7 @@ public class MainActivity extends Activity
 			@Override
 			public void run()
 			{
-				ConnectionHandler.connect("129.65.102.176", PORT);
+				ConnectionHandler.connect(ipAddress, PORT);
 			}
 		}, "Connect thread").start();
 	}
@@ -66,6 +71,8 @@ public class MainActivity extends Activity
 				ConnectionHandler.disconnect();
 			}
 		}, "Disconnect thread").start();
+
+		finish();
 	}
 
 	@Override

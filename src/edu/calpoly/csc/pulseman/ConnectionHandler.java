@@ -15,7 +15,7 @@ import android.util.Log;
 
 public class ConnectionHandler
 {
-	public static final int SOCKET_TIMEOUT = 10000;
+	public static final int SOCKET_TIMEOUT = 5000;
 
 	private static Socket socket = null;
 	private static PrintWriter out = null;
@@ -135,6 +135,8 @@ public class ConnectionHandler
 			}
 		}
 
+		int counter = 0; // TODO
+
 		@Override
 		public void run()
 		{
@@ -171,7 +173,7 @@ public class ConnectionHandler
 					if(isConnected())
 					{
 						long time = SystemClock.elapsedRealtime();
-						out.println(messageQueue.poll());
+						out.println(messageQueue.poll() + ": " + counter++);
 						try
 						{
 							Log.e("debug", in.readLine());
