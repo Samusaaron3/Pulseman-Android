@@ -12,4 +12,23 @@
         android:layout_centerVertical="true"
         android:text="@string/hello_world" />
 
+    <RelativeLayout
+        android:id="@+id/statusLayout"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:gravity="center"
+        android:paddingBottom="@dimen/connection_padding"
+        android:paddingTop="@dimen/connection_padding" >
+
+        <TextView
+            android:id="@+id/statusTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Connected"
+            android:textAppearance="?android:attr/textAppearanceLarge" />
+
+    </RelativeLayout>
+
 </RelativeLayout>

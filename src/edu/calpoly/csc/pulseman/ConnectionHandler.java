@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -24,6 +25,8 @@ public class ConnectionHandler
 	private static MessageSender messageSender;
 
 	private static Queue<String> messageQueue = new LinkedList<String>();
+
+	private static ArrayList<ConnectionStatusListener> listeners = new ArrayList<ConnectionStatusListener>();
 
 	public static synchronized boolean connect(String ip, int port)
 	{
@@ -100,6 +103,14 @@ public class ConnectionHandler
 		out = null;
 		in = null;
 		socket = null;
+
+		synchronized(listeners)
+		{
+			for(int i = 0; i < listeners.size(); ++i)
+			{
+				listeners.get(i).onConnectionLost();
+			}
+		}
 	}
 
 	public static synchronized boolean isConnected()
@@ -140,53 +151,83 @@ public class ConnectionHandler
 		@Override
 		public void run()
 		{
-			while(alive)
+			try
 			{
-				synchronized(messageQueue)
+				while(alive)
 				{
-					while(messageQueue.isEmpty())
+					synchronized(messageQueue)
 					{
-						try
+						while(messageQueue.isEmpty())
 						{
-							messageQueue.wait();
-						}
-						catch(InterruptedException e)
-						{
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+							try
+							{
+								messageQueue.wait();
+							}
+							catch(InterruptedException e)
+							{
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
 
-						if(!alive)
-						{
-							break;
+							if(!alive)
+							{
+								break;
+							}
 						}
 					}
-				}
 
-				if(!alive)
-				{
-					return;
-				}
-
-				synchronized(messageQueue)
-				{
-					if(isConnected())
+					if(!alive)
 					{
-						long time = SystemClock.elapsedRealtime();
-						out.println(messageQueue.poll() + ": " + counter++);
-						try
+						disconnect();
+						return;
+					}
+
+					synchronized(messageQueue)
+					{
+						if(isConnected())
 						{
-							Log.e("debug", in.readLine());
+							long time = SystemClock.elapsedRealtime();
+							out.println(messageQueue.poll() + ": " + counter++);
+							try
+							{
+								Log.e("debug", in.readLine());
+							}
+							catch(IOException e)
+							{
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							Log.e("debug", "Time: " + (SystemClock.elapsedRealtime() - time));
 						}
-						catch(IOException e)
-						{
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-						Log.e("debug", "Time: " + (SystemClock.elapsedRealtime() - time));
 					}
 				}
 			}
+			catch(Exception e)
+			{
+				//
+			}
+			disconnect();
 		}
+	}
+
+	public static void addConnectionStatusListener(ConnectionStatusListener listener)
+	{
+		synchronized(listeners)
+		{
+			listeners.add(listener);
+		}
+	}
+
+	public static void removeConnectionStatusListener(ConnectionStatusListener listener)
+	{
+		synchronized(listeners)
+		{
+			listeners.remove(listener);
+		}
+	}
+
+	interface ConnectionStatusListener
+	{
+		public void onConnectionLost();
 	}
 }

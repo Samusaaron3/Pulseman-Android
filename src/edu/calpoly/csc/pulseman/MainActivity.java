@@ -1,13 +1,19 @@
 package edu.calpoly.csc.pulseman;
 
+import java.sql.Connection;
+
+import edu.calpoly.csc.pulseman.ConnectionHandler.ConnectionStatusListener;
+
+import android.graphics.Color;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.app.Activity;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnTouchListener;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 
 public class MainActivity extends Activity
 {
@@ -26,19 +32,51 @@ public class MainActivity extends Activity
 		Bundle extras = getIntent().getExtras();
 		ipAddress = extras.getString(IP_ADDRESS);
 
+		final int size = 20;
+		final MediaPlayer[] players = new MediaPlayer[20];
+		for(int i = 0; i < size; ++i)
+		{
+			players[i] = MediaPlayer.create(MainActivity.this, R.raw.single_pulse);
+		}
+
 		layout = (RelativeLayout)findViewById(R.id.main_layout);
 		layout.setOnTouchListener(new OnTouchListener()
 		{
+			int playerID = 0;
+
 			@Override
 			public boolean onTouch(View v, MotionEvent event)
 			{
-				Log.e("debug", "touch");
+				players[playerID++].start(); // no need to call prepare(); create() does that for you
+				playerID %= players.length;
+
 				if(ConnectionHandler.isConnected())
 				{
 					ConnectionHandler.sendMessage("touch");
 				}
 
 				return false;
+			}
+		});
+
+		final RelativeLayout statusLayout = (RelativeLayout)findViewById(R.id.statusLayout);
+		statusLayout.setBackgroundColor(Color.GREEN);
+		final TextView statusText = (TextView)findViewById(R.id.statusTextView);
+
+		ConnectionHandler.addConnectionStatusListener(new ConnectionStatusListener()
+		{
+			@Override
+			public void onConnectionLost()
+			{
+				runOnUiThread(new Runnable()
+				{
+					@Override
+					public void run()
+					{
+						statusLayout.setBackgroundColor(Color.RED);
+						statusText.setText("Disconnected :(");
+					}
+				});
 			}
 		});
 	}
