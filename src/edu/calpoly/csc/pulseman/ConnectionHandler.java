@@ -11,9 +11,6 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import android.os.SystemClock;
-import android.util.Log;
-
 public class ConnectionHandler
 {
 	public static final int SOCKET_TIMEOUT = 5000;
@@ -186,18 +183,9 @@ public class ConnectionHandler
 					{
 						if(isConnected())
 						{
-							long time = SystemClock.elapsedRealtime();
+							// long time = SystemClock.elapsedRealtime();
 							out.println(messageQueue.poll() + ": " + counter++);
-							try
-							{
-								Log.e("debug", in.readLine());
-							}
-							catch(IOException e)
-							{
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-							Log.e("debug", "Time: " + (SystemClock.elapsedRealtime() - time));
+							// in.readLine();
 						}
 					}
 				}
