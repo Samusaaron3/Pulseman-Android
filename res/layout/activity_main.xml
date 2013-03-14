@@ -32,4 +32,11 @@
         android:layout_centerVertical="true"
         android:src="@drawable/heart" />
 
+    <SurfaceView
+        android:id="@+id/barSurfaceView"
+        android:layout_width="fill_parent"
+        android:layout_height="100dp"
+        android:layout_below="@+id/statusLayout"
+        android:layout_centerHorizontal="true" />
+
 </RelativeLayout>
