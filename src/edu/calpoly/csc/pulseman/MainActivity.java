@@ -162,17 +162,20 @@ public class MainActivity extends Activity
 		finish();
 	}
 
+	private static final int MAX_COLOR = 255;
 	private static class Renderer extends TimerTask
 	{
 		private SurfaceHolder holder;
 		private Paint paint;
 		float value = 0.0f;
 		private double f = 0.0;
+		private int red, green;
 
 		public Renderer(SurfaceHolder holder)
 		{
 			this.holder = holder;
-			this.paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+			paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+			paint.setStyle(Paint.Style.FILL);
 		}
 
 		@Override
@@ -184,13 +187,25 @@ public class MainActivity extends Activity
 				canvas.drawColor(Color.BLACK);
 				
 				value = ((float)Math.sin(f) + 1.0f) / 2.0f;
+				red = (int)((-value * value + 1.0f) * MAX_COLOR);
+				green = (int)((-(value - 1.0f) * (value - 1.0f) + 1.0f) * MAX_COLOR);
+				//red = 2 * MAX_COLOR - (int)(value * MAX_COLOR) * 2;
+				//green = (int)(value * MAX_COLOR) * 2;
+				
+				if(red > MAX_COLOR)
+				{
+					red = MAX_COLOR;
+				}
+				if(green > MAX_COLOR)
+				{
+					green = MAX_COLOR;
+				}
 
-				paint.setStyle(Paint.Style.FILL);
-				paint.setColor(Color.rgb(255 - (int)(value * 255), (int)(value * 255), 0));
+				paint.setColor(Color.rgb(red, green, 0));
 
 				canvas.drawRect(0.0f, 25.0f, value * canvas.getWidth(), canvas.getHeight() - 25.0f, paint);
 				
-				f += 0.05;
+				f += 0.01;
 
 				holder.unlockCanvasAndPost(canvas);
 			}
