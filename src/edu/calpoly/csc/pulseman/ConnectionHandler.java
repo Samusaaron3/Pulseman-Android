@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
@@ -20,10 +21,12 @@ public class ConnectionHandler
 	private static BufferedReader in = null;
 
 	private static MessageSender messageSender;
+	private static Receiver receiver;
 
 	private static Queue<String> messageQueue = new LinkedList<String>();
 
 	private static ArrayList<ConnectionStatusListener> listeners = new ArrayList<ConnectionStatusListener>();
+	private static ArrayList<MessageReceiver> messageReceivers = new ArrayList<MessageReceiver>();
 
 	public static synchronized boolean connect(String ip, int port)
 	{
@@ -36,12 +39,15 @@ public class ConnectionHandler
 		try
 		{
 			socket.connect(new InetSocketAddress(ip, port), SOCKET_TIMEOUT);
-			socket.setSoTimeout(SOCKET_TIMEOUT);
+			//socket.setSoTimeout(SOCKET_TIMEOUT);
 			out = new PrintWriter(socket.getOutputStream(), true);
 			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
 			messageSender = new MessageSender();
 			new Thread(messageSender, "Message Sender").start();
+			
+			receiver = new Receiver();
+			new Thread(receiver, "Message Receiver").start();
 
 			return true;
 		}
@@ -64,6 +70,11 @@ public class ConnectionHandler
 		if(messageSender != null)
 		{
 			messageSender.kill();
+		}
+		
+		if(receiver != null)
+		{
+			receiver.kill();
 		}
 
 		if(out != null)
@@ -197,6 +208,45 @@ public class ConnectionHandler
 			disconnect();
 		}
 	}
+	
+	private static class Receiver implements Runnable
+	{
+		private boolean alive;
+
+		public Receiver()
+		{
+			alive = true;
+		}
+
+		public void kill()
+		{
+			alive = false;
+		}
+
+		@Override
+		public void run()
+		{
+			String inputLine;
+
+			try
+			{
+				while(alive && (inputLine = in.readLine()) != null)
+				{
+					synchronized(messageReceivers)
+					{
+						for(int i = 0; i < messageReceivers.size(); ++i)
+						{
+							messageReceivers.get(i).onMessageReceived(inputLine);
+						}
+					}
+				}
+			}
+			catch(IOException e)
+			{
+				e.printStackTrace(); // TODO
+			}
+		}
+	}
 
 	public static void addConnectionStatusListener(ConnectionStatusListener listener)
 	{
@@ -217,5 +267,56 @@ public class ConnectionHandler
 	interface ConnectionStatusListener
 	{
 		public void onConnectionLost();
+	}
+	
+	/**
+	 * Adds a MessageReceiver to the list of receivers
+	 * 
+	 * @param receiver The MessageReceiver to add
+	 */
+	public static void addmessageReceiver(MessageReceiver receiver)
+	{
+		synchronized(messageReceivers)
+		{
+			messageReceivers.add(receiver);
+		}
+	}
+
+	/**
+	 * Removes a MessageReceiver from the list of receivers
+	 * 
+	 * @param receiver The MessageReceiver to remove
+	 */
+	public static void removemessageReceiver(MessageReceiver receiver)
+	{
+		synchronized(messageReceivers)
+		{
+			messageReceivers.remove(receiver);
+		}
+	}
+
+	/**
+	 * Interface used to notify listeners when messages are received from an Android client
+	 * 
+	 * @author Aaron Jacobs
+	 */
+	public interface MessageReceiver
+	{
+		/**
+		 * Called when a message is received from an Android client
+		 * 
+		 * @param message The message received by the client
+		 */
+		public void onMessageReceived(String message);
+
+		/**
+		 * Called when the connection to the client is established
+		 */
+		public void onConnectionEstablished(InetAddress client);
+
+		/**
+		 * Called when the connection to the client is lost
+		 */
+		public void onConnectionLost(InetAddress client);
 	}
 }

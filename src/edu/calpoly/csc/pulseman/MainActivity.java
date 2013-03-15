@@ -1,9 +1,11 @@
 package edu.calpoly.csc.pulseman;
 
+import java.net.InetAddress;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import edu.calpoly.csc.pulseman.ConnectionHandler.ConnectionStatusListener;
+import edu.calpoly.csc.pulseman.ConnectionHandler.MessageReceiver;
 
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -163,12 +165,13 @@ public class MainActivity extends Activity
 	}
 
 	private static final int MAX_COLOR = 255;
-	private static class Renderer extends TimerTask
+	private static class Renderer extends TimerTask implements MessageReceiver
 	{
 		private SurfaceHolder holder;
 		private Paint paint;
-		float value = 0.0f;
-		private double f = 0.0;
+		//float value = 0.0f;
+		//private double f = 0.0;
+		private double percent = 0.0;
 		private int red, green;
 
 		public Renderer(SurfaceHolder holder)
@@ -176,6 +179,8 @@ public class MainActivity extends Activity
 			this.holder = holder;
 			paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 			paint.setStyle(Paint.Style.FILL);
+			
+			ConnectionHandler.addmessageReceiver(this);
 		}
 
 		@Override
@@ -186,11 +191,9 @@ public class MainActivity extends Activity
 				Canvas canvas = holder.lockCanvas();
 				canvas.drawColor(Color.BLACK);
 				
-				value = ((float)Math.sin(f) + 1.0f) / 2.0f;
-				red = (int)((-value * value + 1.0f) * MAX_COLOR);
-				green = (int)((-(value - 1.0f) * (value - 1.0f) + 1.0f) * MAX_COLOR);
-				//red = 2 * MAX_COLOR - (int)(value * MAX_COLOR) * 2;
-				//green = (int)(value * MAX_COLOR) * 2;
+				//value = ((float)Math.sin(f) + 1.0f) / 2.0f;
+				red = (int)((-percent * percent + 1.0f) * MAX_COLOR);
+				green = (int)((-(percent - 1.0f) * (percent - 1.0f) + 1.0f) * MAX_COLOR);
 				
 				if(red > MAX_COLOR)
 				{
@@ -203,12 +206,39 @@ public class MainActivity extends Activity
 
 				paint.setColor(Color.rgb(red, green, 0));
 
-				canvas.drawRect(0.0f, 25.0f, value * canvas.getWidth(), canvas.getHeight() - 25.0f, paint);
+				canvas.drawRect(0.0f, 25.0f, (float)percent * canvas.getWidth(), canvas.getHeight() - 25.0f, paint);
 				
-				f += 0.01;
+				//f += 0.01;
 
 				holder.unlockCanvasAndPost(canvas);
 			}
+		}
+
+		@Override
+		public void onMessageReceived(String message)
+		{
+			try
+			{
+				percent = Double.parseDouble(message);
+			}
+			catch(Exception e)
+			{
+				//
+			}
+		}
+
+		@Override
+		public void onConnectionEstablished(InetAddress client)
+		{
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void onConnectionLost(InetAddress client)
+		{
+			// TODO Auto-generated method stub
+			
 		}
 	}
 }
