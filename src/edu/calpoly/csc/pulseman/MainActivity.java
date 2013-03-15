@@ -73,12 +73,20 @@ public class MainActivity extends Activity
 		heartImageView = (ImageView)findViewById(R.id.heartImageView);
 		heartImageView.setOnTouchListener(new OnTouchListener()
 		{
+			private boolean isDiastole = true;
 			@Override
 			public boolean onTouch(View v, MotionEvent event)
 			{
 				if(event.getAction() == MotionEvent.ACTION_DOWN)
 				{
-					heartImageView.setImageResource(R.drawable.heartp);
+					if(isDiastole)
+					{
+						heartImageView.setImageResource(R.drawable.heart_diastole_depressed);
+					}
+					else
+					{
+						heartImageView.setImageResource(R.drawable.heart_systole_depressed);
+					}
 
 					new Thread(new Runnable()
 					{
@@ -94,7 +102,15 @@ public class MainActivity extends Activity
 				}
 				else if(event.getAction() == MotionEvent.ACTION_UP)
 				{
-					heartImageView.setImageResource(R.drawable.heart);
+					isDiastole = !isDiastole;
+					if(isDiastole)
+					{
+						heartImageView.setImageResource(R.drawable.heart_diastole);
+					}
+					else
+					{
+						heartImageView.setImageResource(R.drawable.heart_systole);
+					}
 				}
 
 				return true;
@@ -191,6 +207,15 @@ public class MainActivity extends Activity
 				Canvas canvas = holder.lockCanvas();
 				canvas.drawColor(Color.BLACK);
 				
+				if(percent > 1.0)
+				{
+					percent = 1.0;
+				}
+				else if(percent < 0.0)
+				{
+					percent = 0.0;
+				}
+				
 				//value = ((float)Math.sin(f) + 1.0f) / 2.0f;
 				red = (int)((-percent * percent + 1.0f) * MAX_COLOR);
 				green = (int)((-(percent - 1.0f) * (percent - 1.0f) + 1.0f) * MAX_COLOR);
@@ -207,7 +232,7 @@ public class MainActivity extends Activity
 				paint.setColor(Color.rgb(red, green, 0));
 
 				canvas.drawRect(0.0f, 25.0f, (float)percent * canvas.getWidth(), canvas.getHeight() - 25.0f, paint);
-				
+
 				//f += 0.01;
 
 				holder.unlockCanvasAndPost(canvas);
