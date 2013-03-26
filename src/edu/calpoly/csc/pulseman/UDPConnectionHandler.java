@@ -19,22 +19,10 @@ public class UDPConnectionHandler
 
 	private static DatagramSocket socket = null;
 
-	public static String getStatus()
-	{
-		if(socket == null)
-		{
-			return "Connection Not Established";
-		}
-		else
-		{
-			return "Pointed at " + socket.getRemoteSocketAddress();
-		}
-	}
-
 	public static boolean findHost()
 	{
-		final String outMessage = "pulse";
-		byte[] message = encodeMessage(outMessage);
+		final String handshakeMessage = "pulse";
+		byte[] message = encodeMessage(handshakeMessage);
 
 		InetAddress multicastAddress;
 		try
@@ -43,19 +31,19 @@ public class UDPConnectionHandler
 
 			try
 			{
-				MulticastSocket s = new MulticastSocket(MainActivity.PORT);
-				s.joinGroup(multicastAddress);
+				MulticastSocket multicastSocket = new MulticastSocket(MainActivity.PORT);
+				multicastSocket.joinGroup(multicastAddress);
 
 				DatagramPacket outPacket = new DatagramPacket(message, message.length, multicastAddress, MainActivity.PORT);
-				s.send(outPacket);
+				multicastSocket.send(outPacket);
 
 				byte[] buffer = new byte[MAX_MESSAGE_SIZE];
 				DatagramPacket inPacket;
 				do
 				{
 					inPacket = new DatagramPacket(buffer, buffer.length);
-					s.receive(inPacket);
-				} while(outMessage.equals(decodeMessage(inPacket.getData())));
+					multicastSocket.receive(inPacket);
+				} while(handshakeMessage.equals(decodeMessage(inPacket.getData())));
 
 				int port = COMMUNICATION_PORT;
 				String receivedMessage = decodeMessage(inPacket.getData());
@@ -71,11 +59,7 @@ public class UDPConnectionHandler
 					}
 				}
 
-				if(socket == null)
-				{
-					socket = new DatagramSocket();
-				}
-				socket.disconnect();
+				terminateConnection();
 				socket.connect(new InetSocketAddress(inPacket.getAddress(), port));
 
 				return true;
@@ -96,6 +80,16 @@ public class UDPConnectionHandler
 	public static boolean isConnected()
 	{
 		return socket != null && socket.getRemoteSocketAddress() != null && socket.isConnected();
+	}
+	
+	private static void terminateConnection()
+	{
+		if(socket != null)
+		{
+			socket.disconnect();
+			socket.close();
+			socket = null;
+		}
 	}
 
 	public static boolean sendMessage(String message)
@@ -121,9 +115,7 @@ public class UDPConnectionHandler
 				e.printStackTrace();
 			}
 
-			socket.disconnect();
-			socket.close();
-			socket = null;
+			terminateConnection();
 		}
 
 		return false;
