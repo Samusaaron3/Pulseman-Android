@@ -1,10 +1,10 @@
 package edu.calpoly.csc.pulseman;
 
 import android.app.Activity;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -29,7 +29,7 @@ public class ConnectActivity extends Activity
 			@Override
 			public void onClick(View v)
 			{
-				final String ipAddress = editText.getText().toString();
+				/*final String ipAddress = editText.getText().toString();
 
 				SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(ConnectActivity.this);
 				SharedPreferences.Editor editor = preferences.edit();
@@ -40,7 +40,31 @@ public class ConnectActivity extends Activity
 				intent.putExtra(MainActivity.IP_ADDRESS, ipAddress);
 
 				startActivity(intent);
-				finish();
+				finish();*/
+				new Thread(new Runnable()
+				{
+					@Override
+					public void run()
+					{
+						boolean connected = UDPConnectionHandler.isConnected() ? true : UDPConnectionHandler.findHost();
+						if(connected)
+						{
+							boolean sent = UDPConnectionHandler.sendMessage("testing message on agreed upon port");
+							if(sent)
+							{
+								Log.e("debug", "Message sent");
+							}
+							else
+							{
+								Log.e("debug", "not sent");
+							}
+						}
+						else
+						{
+							Log.e("debug", "not connected");
+						}
+					}
+				}, "Find Multicast Thread").start();
 			}
 		});
 	}
